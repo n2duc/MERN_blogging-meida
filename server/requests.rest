@@ -1,0 +1,9 @@
+POST http://localhost:5000/get-profile
+Content-Type: application/json
+
+# {
+#     "blog_id": "React-Snowfall-Tutorial-Coding-For-Websitei80K6nQKQu6kzsPUCTQ6U"
+# }
+{
+    "username": "ngocduc8122002"
+}
