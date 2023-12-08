@@ -5,13 +5,21 @@ export const profileDataStructure = {
         fullname: "",
         username: "",
         profile_img: "",
+        email: "",
         bio: "",
     },
     account_info: {
         total_posts: 0,
         total_reads: 0,
     },
-    social_links: {},
+    social_links: {
+        youtube: "",
+        instagram: "",
+        facebook: "",
+        twitter: "",
+        github: "",
+        website: "",
+    },
     joinedAt: "",
 };
 

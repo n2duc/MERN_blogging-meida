@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const InputBox = ({ name, type, id, value, placeholder, icon }) => {
+const InputBox = ({ name, type, id, value, placeholder, icon, ...props }) => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const togglePassword = () => setPasswordVisible(currVal => !currVal)
     
@@ -13,6 +13,7 @@ const InputBox = ({ name, type, id, value, placeholder, icon }) => {
                 placeholder={placeholder}
                 defaultValue={value}
                 className="input-box"
+                {...props}
             />
 
             <i className={`fi ${icon} input-icon`}></i>

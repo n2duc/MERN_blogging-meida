@@ -78,7 +78,7 @@
         @apply opacity-100 pointer-events-auto translate-y-0;
     }
 
-    .sidebar-link{
+    .sidebar-link {
         @apply flex gap-4 items-center py-5 text-dark-grey hover:text-black;
     }
 

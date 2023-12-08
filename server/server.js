@@ -90,7 +90,7 @@ const formatDataToSend = (user) => {
 
 // Change username if it already exists
 const generateUsername = async (email) => {
-    let username = email.split("@")[0];
+    let username = email.split("@")[0].split(".").join("0");
 
     let isUsernameExists = await User.exists({ "personal_info.username": username }).then((result) => result);
 
@@ -265,9 +265,9 @@ server.post("/search-blogs", async (req, res) => {
         let maxLimit = limit ? limit : 3;
         
         const blogs = await Blog.find(findQuery)
-            .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname -_id")
+            .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname")
             .sort({ "publishedAt": -1 })
-            .select("blog_id title banner des tags activity publishedAt -_id")
+            .select("blog_id title banner des tags activity publishedAt")
             .skip((page - 1) * maxLimit)
             .limit(maxLimit)
         return res.status(200).json({ blogs });
@@ -559,7 +559,6 @@ server.post("/delete-comment", verifyJWT, (req, res) => {
 
     let { _id } = req.body;
     
-    
     Comment.findOne({ _id })
         .then(comment => {
             if (user_id == comment.commented_by || user_id == comment.blog_author) {
@@ -570,6 +569,160 @@ server.post("/delete-comment", verifyJWT, (req, res) => {
             }
         })
 
+})
+
+server.put("/change-password", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.personal_info.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid current password' });
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.personal_info.password = hashedPassword;
+        await user.save();
+
+        return res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+server.put('/change-avatar', verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const { avatar } = req.body;
+        // if (!avatar.length) return res.status(403).json({ error: "You must provide blog banner to publish it" })
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        user.personal_info.profile_img = avatar;
+        await user.save();
+
+        return res.status(200).json({ message: 'Avatar updated successfully' });
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+const isValidUrl = (url) => {
+    try {
+        new URL(url);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+server.put("/update-profile", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const updatedData = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const { 
+            personal_info: { fullname, username, bio }, 
+            social_links: { facebook, youtube, instagram, twitter, github, website }
+        } = updatedData;
+
+        // Check if the new username is already taken
+        const existingUserWithUsername = await User.findOne({ 'personal_info.username': username, _id: { $ne: userId } });
+        if (existingUserWithUsername) {
+            return res.status(400).json({ error: 'Username is already taken' });
+        }
+
+        // Validate social links
+        const invalidSocialLinks = ['facebook', 'github', 'instagram', 'youtube', 'twitter', 'website']
+            .filter((link) => updatedData.social_links[link] && !isValidUrl(updatedData.social_links[link]));
+
+        if (invalidSocialLinks.length > 0) {
+            return res.status(400).json({ error: `Invalid URL format for ${invalidSocialLinks.join(', ')}` });
+        }
+
+        user.personal_info.fullname = fullname;
+        user.personal_info.username = username;
+        user.personal_info.bio = bio;
+        user.social_links.facebook = facebook;
+        user.social_links.youtube = youtube;
+        user.social_links.instagram = instagram;
+        user.social_links.twitter = twitter;
+        user.social_links.github = github;
+        user.social_links.website = website;
+
+        await user.save();
+        return res.status(200).json({ message: 'Updated profile successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+server.post("/get-draft-posts", async (req, res) => {
+    try {
+        const { author } = req.body;
+        const blogs = await Blog.find({ draft: true, author: author})
+            .populate("author", "personal_info.profile_img personal_info.username personal_info.fullname")
+            .sort({ "publishedAt": -1 })
+            .select("blog_id title banner des tags activity publishedAt");
+
+        return res.status(200).json({ blogs })
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+server.delete("/delete-post/:id", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const blogId = req.params.id;
+        console.log(blogId);
+        const blog = await Blog.findById(blogId);
+        if (!blog) {
+            return res.status(404).json({ error: 'Blog not found' });
+        }
+        if (blog.author.toString() !== userId) {
+            return res.status(403).json({ error: 'You do not have permission to delete this blog' });
+        }
+        await blog.deleteOne({ blogId });
+
+        return res.status(200).json({ message: 'Blog deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+server.post("/get-notifications", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        console.log(userId);
+        const notifications = await Notification.find({ notification_for: userId })
+            .populate('blog user comment reply replied_on_comment')
+            .populate({
+                path: 'user',
+                select: 'personal_info -_id',
+            })
+            .populate({
+                path: "blog",
+                select: "-content -activity -tags"
+            })
+            .sort({ "publishedAt": -1 })
+            .select("-_id -notification_for -publishedAt")
+
+        return res.status(200).json(notifications);
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
 })
 
 // Include routes

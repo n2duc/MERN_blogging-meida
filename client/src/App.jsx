@@ -9,6 +9,11 @@ import PageNotFound from "./pages/404.page";
 import SearchPage from "./pages/search.page";
 import ProfilePage from "./pages/profile.page";
 import BlogPage from "./pages/blog.page";
+import SettingPage from "./pages/setting.page";
+import EditProfile from "./components/edit-profile.component";
+import ChangePassword from "./components/change-password.component";
+import Notifications from "./components/notifications.component";
+import BlogsDashboard from "./components/blogs-dashboard.component";
 
 const App = () => {
     return (
@@ -24,6 +29,12 @@ const App = () => {
                     <Route path="user/:id" element={<ProfilePage />}  />
                     <Route path="blog/:blog_id" element={<BlogPage />}/>
                     <Route path="*" element={<PageNotFound />} />
+                    <Route path="settings/" element={<SettingPage />}>
+                        <Route path="edit-profile" element={<EditProfile />} />
+                        <Route path="change-password" element={<ChangePassword />} />
+                        <Route path="notifications" element={<Notifications />} />
+                        <Route path="blogs" element={<BlogsDashboard />} />
+                    </Route>
                 </Route>
             </Routes>
         </AuthContextProvider>

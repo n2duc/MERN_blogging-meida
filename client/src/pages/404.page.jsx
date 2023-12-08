@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, } from "react-router-dom";
 // import pageNotFoundImg from "../imgs/404.png";
 import pageNotFoundImg from "../imgs/404-animate.gif";
 import fullLogo from "../imgs/full-logo.png";
